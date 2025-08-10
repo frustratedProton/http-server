@@ -17,7 +17,7 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/http-server.git
+   git clone https://github.com/frustratedProton/http-server
    cd http-server
    ```
 
@@ -49,5 +49,5 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 ## Additional Resources
 
-* [HTTP Request Syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html)
+* [HTTP Request Syntax](https://www.rfc-editor.org/rfc/rfc9110.html)
 * [Learn More About HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol)

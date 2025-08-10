@@ -1,36 +1,80 @@
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <netinet/in.h>
-#include <ostream>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 int main() {
-  // create a socket
-  int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_fd < 0) {
+  // Create a socket
+  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (server_fd < 0) {
     std::cerr << "Failed to create socket! \n" << std::endl;
     return 1;
   }
 
-  // setup server addr
+  int reuse = 1;
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) <
+      0) {
+    std::cerr << "setsockopt failed! \n" << std::endl;
+    return 1;
+  }
+
+  // Setup server address
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr =
       INADDR_ANY; // Bind to any available network interface
   server_addr.sin_port = htons(8080);
 
-  // bind the socket to the addr and port
-  if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
+  // Bind the socket to the addr and port
+  if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
     std::cerr << "Failed to bind to port 8080! \n" << std::endl;
     return 1;
   }
 
-  std::cout << "Successfully bound to port 8080! \n" << std::endl;
+  // Listen for incoming connections
+  int connection_backlog = 5;
+  if (listen(server_fd, connection_backlog) != 0) {
+    std::cerr << "Could not listen to incoming connections! \n" << std::endl;
+    return 1;
+  }
 
-  // close the socket
-  close(socket_fd);
+  std::cout << "Server running. Waiting for clients to connect...\n"
+            << std::endl;
 
+  // Infinite loop to keep the server running indefinitely
+  while (true) {
+    // Accept an incoming connection
+    struct sockaddr_in client_addr;
+    socklen_t client_addr_len = sizeof(client_addr);
+    int client_fd =
+        accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+    if (client_fd < 0) {
+      std::cerr << "Failed to accept connection! \n" << std::endl;
+      continue; // Continue listening for new connections even if accept() fails
+    }
+
+    std::cout << "Client connected! \n" << std::endl;
+
+    // Send HTTP 200 OK response back to the client
+    const char *http_response = "HTTP/1.1 200 OK\r\n\r\n";
+    ssize_t bytes_send =
+        send(client_fd, http_response, strlen(http_response), 0);
+    if (bytes_send < 0) {
+      std::cerr << "Failed to send response! \n" << std::endl;
+    }
+
+    std::cout << "Sent HTTP response: " << http_response << "\n";
+
+    // Close the client socket after the response
+    close(client_fd);
+  }
+
+  // The server will run indefinitely,
+  // so this line won't be reached unless terminated manually
+  close(server_fd);
   return EXIT_SUCCESS;
 }
