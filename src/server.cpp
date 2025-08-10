@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -5,6 +6,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define BUFFER_SIZE 1024
 
 int main() {
   // Create a socket
@@ -59,8 +62,38 @@ int main() {
 
     std::cout << "Client connected! \n" << std::endl;
 
-    // Send HTTP 200 OK response back to the client
-    const char *http_response = "HTTP/1.1 200 OK\r\n\r\n";
+    // recieve req from client
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_recv = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+    if (bytes_recv < 0) {
+      std::cerr << "Failed to receive data! \n" << std::endl;
+      close(client_fd);
+      continue;
+    }
+
+    buffer[bytes_recv] = '\0'; // null termination for valid c style str
+
+    // debugging
+    // std::cout << "Received request:\n" << buffer << std::endl;
+
+    char method[16], path[256], version[16];
+    if (sscanf(buffer, "%15s %255s %15s", method, path, version) != 3) {
+      std::cerr << "Invalid HTTP request format.\n";
+      close(client_fd);
+      continue;
+    }
+
+    std::cout << "HTTP Method: " << method << ", Path: " << path
+              << ", Version: " << version << "\n";
+
+    // Send resp back to the client
+    const char *http_response;
+    if (strcmp(path, "/index.html") == 0) {
+      http_response = "HTTP/1.1 200 OK\r\n\r\n";
+    } else {
+      http_response = "HTTP/1.1 404 Not Found\r\n\r\n";
+    }
+
     ssize_t bytes_send =
         send(client_fd, http_response, strlen(http_response), 0);
     if (bytes_send < 0) {
