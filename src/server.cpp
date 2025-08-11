@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <netinet/in.h>
+#include <ostream>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -86,21 +87,44 @@ int main() {
     std::cout << "HTTP Method: " << method << ", Path: " << path
               << ", Version: " << version << "\n";
 
-    // Send resp back to the client
-    const char *http_response;
-    if (strcmp(path, "/index.html") == 0) {
-      http_response = "HTTP/1.1 200 OK\r\n\r\n";
+    // check if method is GET and path = '/echo/{str}'
+    const char *http_response = nullptr;
+    if (strcmp(method, "GET") == 0 && strncmp(path, "/echo/", 6) == 0) {
+
+      // extract the str after '/echo/'
+      const char *echo_str = path + 6;
+
+      char resp_header[BUFFER_SIZE];
+      int body_length = strlen(echo_str);
+      snprintf(resp_header, sizeof(resp_header),
+               "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "
+               "%d\r\n\r\n",
+               body_length);
+
+      char resp_body[BUFFER_SIZE];
+      snprintf(resp_body, sizeof(resp_body), "%s", echo_str);
+
+      // send the resp_header and body back to client
+      ssize_t bytes_send = send(client_fd, resp_header, strlen(resp_header), 0);
+      if (bytes_send < 0) {
+        std::cerr << "Failed to send response header! \n" << std::endl;
+      }
+
+      bytes_send = send(client_fd, resp_body, strlen(resp_body), 0);
+      if (bytes_send < 0) {
+        std::cerr << "Failed to send response body! \n" << std::endl;
+      }
+
+      std::cout << "Sent HTTP response: " << resp_header << resp_body << "\n";
     } else {
-      http_response = "HTTP/1.1 404 Not Found\r\n\r\n";
+      const char *http_404_resp = "HTTP/1.1 404 Not Found\r\n\r\n";
+      ssize_t bytes_send =
+          send(client_fd, http_404_resp, strlen(http_404_resp), 0);
+      if (bytes_send < 0) {
+        std::cerr << "Failed to send 404 response! \n" << std::endl;
+      }
+      std::cout << "Sent HTTP response: " << http_404_resp << "\n";
     }
-
-    ssize_t bytes_send =
-        send(client_fd, http_response, strlen(http_response), 0);
-    if (bytes_send < 0) {
-      std::cerr << "Failed to send response! \n" << std::endl;
-    }
-
-    std::cout << "Sent HTTP response: " << http_response << "\n";
 
     // Close the client socket after the response
     close(client_fd);

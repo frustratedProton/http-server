@@ -51,3 +51,4 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 * [HTTP Request Syntax](https://www.rfc-editor.org/rfc/rfc9110.html)
 * [Learn More About HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol)
+* [Learn About HTTP Response](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages#http_responses)
