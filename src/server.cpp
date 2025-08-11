@@ -116,6 +116,51 @@ int main() {
       }
 
       std::cout << "Sent HTTP response: " << resp_header << resp_body << "\n";
+    } else if (strcmp(method, "GET") == 0 && strcmp(path, "/user-agent") == 0) {
+      const char *user_agent = nullptr;
+      char *header_start = strstr(buffer, "User-Agent: ");
+
+      if (header_start) {
+        // format is User-Agent: Mozilla/5.0 (<system-information>) <platform>
+        // (<platform-details>) <extensions>
+        header_start += 12;
+        char *end = strchr(header_start, '\r');
+        if (end) {
+          *end = '\0'; // Null-terminate at the carriage return
+        }
+
+        user_agent = header_start;
+
+        // Prepare the response
+        int body_length = strlen(user_agent);
+        char resp_header[BUFFER_SIZE];
+        snprintf(resp_header, sizeof(resp_header),
+                 "HTTP/1.1 200 OK\r\nContent-Type: "
+                 "text/plain\r\nContent-Length: %d\r\n\r\n",
+                 body_length);
+
+        ssize_t bytes_send =
+            send(client_fd, resp_header, strlen(resp_header), 0);
+        if (bytes_send < 0) {
+          std::cerr << "Failed to send response header! \n" << std::endl;
+        }
+
+        bytes_send = send(client_fd, user_agent, body_length, 0);
+        if (bytes_send < 0) {
+          std::cerr << "Failed to send response body! \n" << std::endl;
+        }
+
+        std::cout << "Sent User-Agent response: " << user_agent << "\n";
+      } else {
+        // if User-Agent header is not found, send 400 Bad Request
+        const char *http_400_resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+        ssize_t bytes_send =
+            send(client_fd, http_400_resp, strlen(http_400_resp), 0);
+        if (bytes_send < 0) {
+          std::cerr << "Failed to send 400 response! \n" << std::endl;
+        }
+        std::cout << "Sent 400 response due to missing User-Agent header.\n";
+      }
     } else {
       const char *http_404_resp = "HTTP/1.1 404 Not Found\r\n\r\n";
       ssize_t bytes_send =
