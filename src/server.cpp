@@ -2,15 +2,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <netinet/in.h>
 #include <ostream>
 #include <pthread.h>
+#include <sstream>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #define BUFFER_SIZE 1024
+std::string files_directory;
 
 // Thread function to handle each client connection
 void *handle_client(void *arg) {
@@ -117,6 +121,38 @@ void *handle_client(void *arg) {
       }
       std::cout << "Sent 400 response due to missing User-Agent header.\n";
     }
+  } else if (strcmp(method, "GET") == 0 && strncmp(path, "/files/", 7) == 0) {
+    // get filename
+    if (files_directory.empty()) {
+      // Directory not set, respond 400
+      const char *http_400_resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+      send(client_fd, http_400_resp, strlen(http_400_resp), 0);
+    } else {
+
+      std::string filename(path + 7);
+      std::string full_path = files_directory + "/" + filename;
+
+      std::ifstream file(full_path, std::ios::binary);
+      if (!file) {
+        // file not found
+        const char *http_404_resp = "HTTP/1.1 404 Not Found\r\n\r\n";
+        send(client_fd, http_404_resp, strlen(http_404_resp), 0);
+      } else {
+        std::ostringstream buffer;
+        buffer << file.rdbuf();
+        std::string content = buffer.str();
+
+        char resp_header[BUFFER_SIZE];
+        snprintf(resp_header, sizeof(resp_header),
+                 "HTTP/1.1 200 OK\r\nContent-Type: "
+                 "application/octet-stream\r\nContent-Length: %zu\r\n\r\n",
+                 content.size());
+
+        send(client_fd, resp_header, strlen(resp_header), 0);
+        send(client_fd, content.data(), content.size(), 0);
+      }
+    }
+
   } else {
     const char *http_404_resp = "HTTP/1.1 404 Not Found\r\n\r\n";
     ssize_t bytes_send =
@@ -132,7 +168,16 @@ void *handle_client(void *arg) {
   return nullptr;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  files_directory = "";
+
+  if (argc == 3 && strcmp(argv[1], "--directory") == 0) {
+    files_directory = argv[2];
+  } else if (argc != 1) {
+    std::cerr << "Usage: " << argv[0] << " [--directory <absolute_path>]\n";
+    return 1;
+  }
+
   // Create a socket
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
@@ -202,7 +247,7 @@ int main() {
       pthread_detach(tid); // thread cleans itself when done
     }
   }
-  
+
   // The server will run indefinitely,
   // so this line won't be reached unless terminated manually
   close(server_fd);
