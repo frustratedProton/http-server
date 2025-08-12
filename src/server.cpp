@@ -152,7 +152,73 @@ void *handle_client(void *arg) {
         send(client_fd, content.data(), content.size(), 0);
       }
     }
+  } else if (strcmp(method, "POST") == 0 && strncmp(path, "/files/", 7) == 0) {
+    if (files_directory.empty()) {
+      const char *http_400_resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+      send(client_fd, http_400_resp, strlen(http_400_resp), 0);
+    } else {
+      // get filename
+      std::string filename(path + 7);
+      std::string full_path = files_directory + "/" + filename;
 
+      int content_len = 0;
+      const char *cl_header = strstr(buffer, "Content-Length:");
+      if (cl_header) {
+        sscanf(cl_header, "Content-Length: %d", &content_len);
+      }
+
+      if (content_len <= 0) {
+        // missing or invalid content length
+        const char *http_400_resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+        send(client_fd, http_400_resp, strlen(http_400_resp), 0);
+      } else {
+        char *body_start = strstr(buffer, "\r\n\r\n");
+        int body_byte_in_buffer = 0;
+        if (body_start) {
+          body_start += 4; // move point past \r\n\r\n
+          body_byte_in_buffer = bytes_recv - (body_start - buffer);
+        } else {
+          body_start = nullptr;
+        }
+
+        std::string body;
+        if (body_start && body_byte_in_buffer > 0) {
+          body.assign(body_start, body_byte_in_buffer);
+        }
+
+        // if body is incomplete, read the remaining
+        while ((int)body.size() < content_len) {
+          char temp_buf[BUFFER_SIZE];
+          ssize_t r =
+              recv(client_fd, temp_buf,
+                   std::min(BUFFER_SIZE, content_len - (int)body.size()), 0);
+          if (r <= 0)
+            break;
+          body.append(temp_buf, r);
+        }
+
+        if ((int)body.size() != content_len) {
+          // incomplete body
+          const char *http_400_resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+          send(client_fd, http_400_resp, strlen(http_400_resp), 0);
+        } else {
+          // writing to file
+          std::ofstream outfile(full_path, std::ios::binary);
+
+          if (!outfile) {
+            const char *http_500_resp =
+                "HTTP/1.1 500 Internal Server Error\r\n\r\n";
+            send(client_fd, http_500_resp, strlen(http_500_resp), 0);
+          } else {
+            outfile.write(body.data(), body.size());
+            outfile.close();
+
+            const char *http_201_resp = "HTTP/1.1 201 Created\r\n\r\n";
+            send(client_fd, http_201_resp, strlen(http_201_resp), 0);
+          }
+        }
+      }
+    }
   } else {
     const char *http_404_resp = "HTTP/1.1 404 Not Found\r\n\r\n";
     ssize_t bytes_send =
