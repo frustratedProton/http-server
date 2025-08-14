@@ -1,6 +1,20 @@
 #include "http_parser.hpp"
 #include <sstream>
 
+/*
+Typical format of HTTP Request
+
+--------------------------------
+
+POST /users HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 49
+
+name=FirstName+LastName&email=bsmth%40example.com
+
+*/
+
 HttpRequest HttpParser::parse(const std::string &raw) {
   HttpRequest req;
   std::istringstream stream(raw);

@@ -1,8 +1,12 @@
 #include "request_handler.hpp"
+#include "details/compression.hpp"
 #include "http_parser.hpp"
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -33,10 +37,33 @@ void RequestHandler::handleRequest(int client_fd, const std::string &request) {
   // /echo/<msg>
   if (req.method == "GET" && req.path.rfind("/echo/", 0) == 0) {
     std::string body = req.path.substr(6);
-    resp << "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: "
-         << body.size() << "\r\n\r\n"
-         << body;
+
+    bool clientAccpetGzip = false;
+    auto it = req.headers.find("Accept-Encoding");
+    if (it != req.headers.end()) {
+      std::string encodingDirective = it->second;
+      std::transform(encodingDirective.begin(), encodingDirective.end(),
+                     encodingDirective.begin(), ::tolower);
+      if (encodingDirective.find("gzip") != std::string::npos) {
+        clientAccpetGzip = true;
+      }
+    }
+
+    std::string outBody = body;
+    if (clientAccpetGzip) {
+      outBody = gzipCompress(body);
+    }
+
+    std::ostringstream resp;
+    resp << "HTTP/1.1 200 OK\r\n";
+    resp << "Content-Type: text/plain\r\n";
+    if (clientAccpetGzip) {
+      resp << "Content-Encoding: gzip\r\n";
+    }
+    resp << "Content-Length: " << outBody.size() << "\r\n\r\n";
+
     send(client_fd, resp.str().c_str(), resp.str().size(), 0);
+    send(client_fd, outBody.data(), outBody.size(), 0);
     return;
   }
 

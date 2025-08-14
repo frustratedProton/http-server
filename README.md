@@ -50,15 +50,42 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 ### GET /echo/{string}
 
-Responds with the text following `/echo/` in the path.
+Responds with the text following `/echo/` in the path. If the request includes `Accept-Encoding: gzip`, the response will be gzip-compressed.
 
-Example:
+Example (plain text):
 
 ```bash
 curl http://localhost:8080/echo/hello
 ```
 
 Response:
+
+```
+hello
+```
+
+Example (gzip):
+
+```bash
+curl -v -H "Accept-Encoding: gzip" http://localhost:8080/echo/hello --output -
+```
+
+Response headers:
+
+```
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Encoding: gzip
+Content-Length: 23
+```
+
+Use `--compressed` to see decompressed output:
+
+```bash
+curl --compressed http://localhost:8080/echo/hello
+```
+
+Output:
 
 ```
 hello
