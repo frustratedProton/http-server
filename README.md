@@ -150,3 +150,4 @@ The file will be saved as `/absolute/path/to/files/myfile.txt`.
 * [HTTP Request Syntax](https://www.rfc-editor.org/rfc/rfc9110.html)
 * [Learn More About HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol)
 * [Learn About HTTP Response](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages#http_responses)
+* [Learn About Content-Encoding header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding)

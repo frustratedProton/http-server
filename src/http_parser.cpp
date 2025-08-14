@@ -21,7 +21,7 @@ HttpRequest HttpParser::parse(const std::string &raw) {
   stream >> req.method >> req.path >> req.version;
 
   std::string line;
-  std::getline(stream, line); // consume rest of first line
+  std::getline(stream, line); // consuming rest of first line
 
   while (std::getline(stream, line) && line != "\r") {
     auto colon = line.find(":");

@@ -1,4 +1,4 @@
-#include "request_handler.hpp" // needed for static member access
+#include "request_handler.hpp" 
 #include "server.hpp"
 #include <iostream>
 
@@ -8,8 +8,8 @@ int main(int argc, char *argv[]) {
     filesDir = argv[2];
   }
 
-  RequestHandler::files_directory = filesDir; // <— set it here
-
+  RequestHandler::files_directory = filesDir; 
+  
   Server server(8080, filesDir);
   server.run();
   return 0;
