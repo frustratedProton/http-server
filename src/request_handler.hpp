@@ -4,6 +4,7 @@
 
 class RequestHandler {
 public:
+  static void handleClient(int client_fd);
   static void *handleClientThread(void *arg);
   static std::string files_directory;
 

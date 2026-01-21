@@ -4,6 +4,29 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 ---
 
+## Performance
+
+Benchmarked using [wrk](https://github.com/wg/wrk) on a 32-thread pool:
+
+| Connections | Requests/sec | Avg Latency |
+| ----------- | ------------ | ----------- |
+| 100         | 131,000      | 0.16ms      |
+| 500         | 168,000      | 0.15ms      |
+| 1,000       | 104,000      | 2.15ms      |
+| 5,000       | 119,000      | 0.17ms      |
+| 10,000      | 67,000       | 0.25ms      |
+
+Key optimizations:
+- HTTP keep-alive connection reuse
+- TCP_NODELAY to disable Nagle's algorithm
+- Thread pool for concurrent request handling
+
+⚠️ Note on Benchmark Anomaly:
+There is a latency spike at 1,000 concurrent connections (1.44s) compared to better performance at 5,000 connections (169µs).
+
+This non-linear behavior is currently under investigation. My preliminary analysis suggests a temporary exhaustion of the OS TCP Accept Queue (backlog) or ephemeral port collisions during the specific ramp-up phase of the test tool at that concurrency level. The server stabilizes and performs optimally at higher concurrencies (5k/10k) once the initial handshake burst is processed.
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -44,6 +67,7 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 2. The server listens on port 8080 by default.
 
+3. Added `benchmark.sh` for reproducible load testing (using wrk) across 100-10k connection tiers.
 ---
 
 ## Supported Endpoints
@@ -151,3 +175,4 @@ The file will be saved as `/absolute/path/to/files/myfile.txt`.
 * [Learn More About HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol)
 * [Learn About HTTP Response](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages#http_responses)
 * [Learn About Content-Encoding header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding)
+* [learn About Nagle's Algorithm](https://en.wikipedia.org/wiki/Nagle%27s_algorithm) and [TCP_NODELAY](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_real_time/10/html/optimizing_rhel_for_real_time_for_low_latency_operation/improving-network-latency-using-tcpnodelay)

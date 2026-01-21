@@ -1,6 +1,7 @@
 #include "socket_utils.hpp"
 #include <iostream>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -28,5 +29,14 @@ int create_server_socket(int port) {
 int accept_client(int server_fd) {
   sockaddr_in client_addr{};
   socklen_t client_len = sizeof(client_addr);
-  return accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
+  int client_fd =
+      accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
+
+  if (client_fd >= 0) {
+    // diabled nagle's algo; gave latency a massive boost
+    int flag = 1;
+    setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+  }
+
+  return client_fd;
 }
