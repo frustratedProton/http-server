@@ -3,14 +3,41 @@
 #include "http_parser.hpp"
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
+#include <ios>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 
 std::string RequestHandler::files_directory = "";
+
+std::optional<std::string> sanitizePath(const std::string &base_dir,
+                                        const std::string &untrusted_path) {
+
+  try {
+    // resolving to canonical filepath
+    // to solve CWE-22 vuln
+    std::filesystem::path base = std::filesystem::canonical(base_dir);
+    std::filesystem::path requested =
+        std::filesystem::weakly_canonical(base / untrusted_path);
+
+    // verifying resolved path to make sure its still under base_dir
+    auto [base_end, req_it] = std::mismatch(base.begin(), base.end(),
+                                            requested.begin(), requested.end());
+
+    if (base_end != base.end()) {
+      return std::nullopt;
+    }
+
+    return requested.string();
+  } catch (const std::filesystem::filesystem_error &) {
+    return std::nullopt;
+  }
+}
 
 void RequestHandler::handleClient(int client_fd) {
   std::string buffer;
@@ -173,7 +200,23 @@ void RequestHandler::handleRequest(int client_fd, const HttpRequest &req) {
   // /files/<filename> GET
   if (req.method == "GET" && req.path.rfind("/files/", 0) == 0) {
     std::string filename = req.path.substr(7);
-    std::ifstream file(files_directory + "/" + filename, std::ios::binary);
+
+    auto path = sanitizePath(files_directory, filename);
+
+    if (!path) {
+      std::string forbidden = "Acess Denied";
+      resp << "HTTP/1.1 403 Forbidden\r\n";
+      resp << "Content-Type: text/plain\r\n";
+      resp << (shouldClose ? "Connection: close\r\n"
+                           : "Connection: keep-alive\r\n");
+      resp << "Content-Length: " << forbidden.size() << "\r\n\r\n";
+      resp << forbidden;
+
+      send(client_fd, resp.str().c_str(), resp.str().size(), 0);
+      return;
+    }
+
+    std::ifstream file(*path, std::ios::binary);
 
     if (!file) {
       std::string notFound = "File not found";
@@ -203,7 +246,23 @@ void RequestHandler::handleRequest(int client_fd, const HttpRequest &req) {
   // /files/<filename> POST
   if (req.method == "POST" && req.path.rfind("/files/", 0) == 0) {
     std::string filename = req.path.substr(7);
-    std::ofstream file(files_directory + "/" + filename, std::ios::binary);
+
+    auto path = sanitizePath(files_directory, filename);
+
+    if (!path) {
+      std::string forbidden = "Acess Denied";
+      resp << "HTTP/1.1 403 Forbidden\r\n";
+      resp << "Content-Type: text/plain\r\n";
+      resp << (shouldClose ? "Connection: close\r\n"
+                           : "Connection: keep-alive\r\n");
+      resp << "Content-Length: " << forbidden.size() << "\r\n\r\n";
+      resp << forbidden;
+
+      send(client_fd, resp.str().c_str(), resp.str().size(), 0);
+      return;
+    }
+
+    std::ofstream file(*path, std::ios::binary);
 
     if (!file) {
       std::string err = "Unable to write file";
