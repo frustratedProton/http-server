@@ -4,6 +4,11 @@ This project is a simple **HTTP/1.1 server** written in **C++**. The goal is to 
 
 ---
 
+> [!WARNING]
+> **EDUCATIONAL USE ONLY**
+> This project is for learning C++ networking concepts. It is **not security-hardened** and should not be used in production. There are known vulnerabilities (see below).
+---
+
 ## Performance
 
 Benchmarked using [wrk](https://github.com/wg/wrk) on a 32-thread pool:
@@ -166,6 +171,42 @@ HTTP/1.1 201 Created
 ```
 
 The file will be saved as `/absolute/path/to/files/myfile.txt`.
+
+---
+
+## Known Vulnerabilities
+
+| Issue                   | Severity    | Status |
+| ----------------------- | ----------- | ------ |
+| Path Traversal (CWE-22) | 🔴 Critical | Fixed  |
+| Content-Length overflow | 🔴 Critical | Known  |
+| Unbounded buffer        | 🔴 High     | Known  |
+| No recv timeout         | 🟡 Medium   | Known  |
+| send() errors ignored   | 🟡 Medium   | Known  |
+
+### Why Not Fix These?
+
+This project was built to learn:
+- Socket programming
+- HTTP/1.1 protocol
+- Threading and concurrency
+
+Security hardening is a future goal, not the current focus.
+
+
+### Reporting a Vulnerability
+
+**I welcome educational reports!**
+
+I'm actively learning about security. Even for known issues, I appreciate:
+- Proof of Concepts (PoCs)
+- Draft Security Advisories
+- Detailed explanations
+
+> See [SECURITY.md](SECURITY.md) for reporting new vulnerabilities.
+
+
+**Do not expose this server to the internet or untrusted input.**
 
 ---
 
