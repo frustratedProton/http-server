@@ -26,11 +26,13 @@ Key optimizations:
 - TCP_NODELAY to disable Nagle's algorithm
 - Thread pool for concurrent request handling
 
-⚠️ Note on Benchmark Anomaly:
+
+> **⚠️ Note on Benchmark Anomaly**<br>
 There is a latency spike at 1,000 concurrent connections (1.44s) compared to better performance at 5,000 connections (169µs).
 
-This non-linear behavior is currently under investigation. My preliminary analysis suggests a temporary exhaustion of the OS TCP Accept Queue (backlog) or ephemeral port collisions during the specific ramp-up phase of the test tool at that concurrency level. The server stabilizes and performs optimally at higher concurrencies (5k/10k) once the initial handshake burst is processed.
----
+
+
+*This non-linear behavior is currently under investigation. My preliminary analysis suggests a temporary exhaustion of the OS TCP Accept Queue (backlog) or ephemeral port collisions during the specific ramp-up phase of the test tool at that concurrency level. The server stabilizes and performs optimally at higher concurrencies (5k/10k) once the initial handshake burst is processed.*
 
 ## Getting Started
 
@@ -174,24 +176,17 @@ The file will be saved as `/absolute/path/to/files/myfile.txt`.
 
 ---
 
-## Known Vulnerabilities
+## Known Vulnerabilities / Roadmap
 
 | Issue                   | Severity    | Status |
 | ----------------------- | ----------- | ------ |
 | Path Traversal (CWE-22) | 🔴 Critical | Fixed  |
-| Content-Length overflow | 🔴 Critical | Known  |
-| Unbounded buffer        | 🔴 High     | Known  |
-| No recv timeout         | 🟡 Medium   | Known  |
-| send() errors ignored   | 🟡 Medium   | Known  |
+| Content-Length overflow | 🔴 Critical | WIP    |
+| Unbounded buffer        | 🔴 High     | WIP    |
+| No recv timeout         | 🟡 Medium   | WIP    |
+| send() errors ignored   | 🟡 Medium   | WIP    |
 
-### Why Not Fix These?
-
-This project was built to learn:
-- Socket programming
-- HTTP/1.1 protocol
-- Threading and concurrency
-
-Security hardening is a future goal, not the current focus.
+This is a learning project (sockets, HTTP, threading) — security hardening is ongoing.
 
 
 ### Reporting a Vulnerability
@@ -216,4 +211,4 @@ I'm actively learning about security. Even for known issues, I appreciate:
 * [Learn More About HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol)
 * [Learn About HTTP Response](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages#http_responses)
 * [Learn About Content-Encoding header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding)
-* [learn About Nagle's Algorithm](https://en.wikipedia.org/wiki/Nagle%27s_algorithm) and [TCP_NODELAY](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_real_time/10/html/optimizing_rhel_for_real_time_for_low_latency_operation/improving-network-latency-using-tcpnodelay)
+* [Learn About Nagle's Algorithm](https://en.wikipedia.org/wiki/Nagle%27s_algorithm) and [TCP_NODELAY](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_real_time/10/html/optimizing_rhel_for_real_time_for_low_latency_operation/improving-network-latency-using-tcpnodelay)
